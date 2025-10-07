@@ -1,4 +1,4 @@
-name: Android Build
+name: Build Android APK
 
 on:
   push:
@@ -16,22 +16,18 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Setup Java
+      - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Web Assets
-        run: echo "Web dosyaları zaten hazır."
-
-      - name: Setup Capacitor
-        run: |
-          npx cap init "Hm Hesabi" "com.sirketim.hmhesabi" --web-dir "."
-          npx cap add android
+      - name: Sync Web Assets
+        run: npx cap sync android
 
       - name: Build Android APK
         run: |

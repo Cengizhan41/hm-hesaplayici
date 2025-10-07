@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hm Hesabi</string>
+    <string name="title_activity_main">Hm Hesabi</string>
+    <string name="package_name">com.sirketim.hmhesabi</string>
+    <string name="custom_url_scheme">com.sirketim.hmhesabi</string>
+</resources>

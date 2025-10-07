@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hm Hesaplayıcı</title>
+    <style>
+        :root {
+            --primary-color: #0056b3; --secondary-color: #007bff; --light-gray: #f8f9fa;
+            --border-color: #dee2e6; --text-color: #343a40; --danger-color: #dc3545;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #e9ecef; color: var(--text-color); line-height: 1.6; margin: 0; padding: 20px;
+        }
+        .container {
+            max-width: 1300px; margin: 0 auto; background-color: #ffffff;
+            padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        header { text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 30px; }
+        header h1 { color: var(--primary-color); margin: 0; font-size: 2.2em; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .form-section { background-color: var(--light-gray); border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; }
+        .form-section h2 { margin-top: 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 1.5em; }
+        .input-wrapper { display: flex; flex-direction: column; gap: 20px; }
+        .fitting-input-group { background-color: #fff; border: 1px solid #ced4da; padding: 15px; border-radius: 6px; }
+        .fitting-input-group label { font-weight: bold; margin-bottom: 8px; font-size: 1em; display: block; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        .input-row input, .input-row select { padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 1em; width: 100%; box-sizing: border-box; }
+        
+        .input-row > * { flex: 1 1 0; min-width: 0; }
+        
+        .input-with-unit { position: relative; display: flex; align-items: center; }
+        .input-with-unit .unit {
+            position: absolute; right: 30px; color: #888; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+        }
+        .input-with-unit input:not(:placeholder-shown) + .unit { opacity: 1; }
+        
+        #error-message {
+            grid-column: 1 / -1; color: var(--danger-color); background-color: #f8d7da;
+            border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px;
+            text-align: center; font-weight: bold; margin-bottom: 20px; display: none;
+        }
+        input.invalid, select.invalid { border-color: var(--danger-color) !important; }
+
+        .calculate-btn { grid-column: 1 / -1; padding: 15px; background-color: var(--secondary-color); color: white; border: none; border-radius: 5px; font-size: 1.3em; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
+        .calculate-btn:hover { background-color: var(--primary-color); }
+        #results { grid-column: 1 / -1; background-color: #e3f2fd; border: 1px solid #b3e5fc; padding: 25px; border-radius: 8px; display: none; }
+        #results h2 { color: #01579b; }
+        .result-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .result-item { background-color: #ffffff; padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); }
+        .final-result { margin-top: 20px; padding: 18px; background-color: var(--secondary-color); color: white; text-align: center; border-radius: 5px; font-size: 1.6em; font-weight: bold; }
+        
+        @media (max-width: 992px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        /* MOBİL GÖRÜNÜM İYİLEŞTİRMELERİ */
+        @media (max-width: 768px) { 
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            header { padding: .2em; margin-bottom: .5em; }
+            header h1 { font-size: 1.3em; } /* Ana başlık küçültüldü */
+            .main-grid { gap: 20px; }
+            .form-section { padding: 10px; border: 1px solid darkblue; }
+            .form-section h2 { font-size: 1em; padding: .2em; margin-bottom: .5em; } /* Alt başlıklar küçültüldü */
+            .form-section label{font-size: .85em;}
+            .fitting-input-group { padding: 12px; }
+            .input-wrapper { gap: 15px; }
+            .input-row { flex-direction: column; align-items: stretch; gap: 12px; }
+            .input-row input, .input-row select { 
+                padding: 5px; /* Textbox iç boşluğu azaltıldı */
+                font-size: 0.75em; /* Textbox yazı boyutu küçültüldü */
+            }
+            .result-grid { grid-template-columns: 1fr; }
+            .final-result { font-size: 1.3em; }
+            .calculate-btn { font-size: 1.1em; }
+            #error-message {font-size: .8em; margin-bottom: 0; padding-bottom: 5px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header><h1> Hm Hesaplayıcı</h1></header>
+
+        <form id="pumpForm" onsubmit="return false;" class="main-grid">
+            <div id="error-message"></div>
+            
+            <section class="form-section" style="grid-column: 1 / -1;">
+                <h2>Genel Bilgiler</h2>
+                <div class="fitting-input-group">
+                    <div class="input-row">
+                        <div class="input-with-unit">
+                            <input type="number" id="flowRate" placeholder="Pompa Debisi*" step="any" min="0"> <span class="unit">m³/saat</span>
+                        </div>
+                        <div class="input-with-unit">
+                            <input type="number" id="staticHead" placeholder="Statik Yükseklik (Hg)*" step="any" min="0"> <span class="unit">m</span>
+                        </div>
+                        <div>
+                            <select id="pipeMaterial">
+                                <option value="" disabled selected>Boru Malzemesi Seçiniz*</option>
+                                <option value="0.25">DÖKÜM BİTÜM KAPLI</option>
+                                <option value="0.375">DÖKÜM KAPLAMASIZ</option>
+                                <option value="0.0875">DÖKÜM BETON KAPLI</option>
+                                <option value="2.1">DÖKÜM ESKİ VE KULLANILMIŞ</option>
+                                <option value="0.125">ÇELİK BORU GALVANİZLİ</option>
+                                <option value="0.075">ÇELİK BORU BİTÜM KAPLI</option>
+                                <option value="0.0625">ÇELİK BORU BETON KAPLI</option>
+                                <option value="0.825">ÇELİK BORU ESKİ VE KULLANILMIŞ</option>
+                                <option value="0.55">BETON BORU DÜZGÜN</option>
+                                <option value="2.5">PÜRÜZLÜ BORU</option>
+                                <option value="0.05">CAM ELYAF TAKVİYELİ PLASTİK BORU</option>
+                                <option value="0.075">ASTBESTLİ ÇİMENTO BORU</option>
+                                <option value="0.03">ALİMİNYUM,BAKIR,KURŞUN,PRİNÇ BORU</option>
+                                <option value="0.41">HORTUM (KAUÇUK KAPLAMALI BEZ)</option>
+                                <option value="1.3">HORTUM (KAUÇUK KAPLAMASIZ BEZ)</option>
+                                <option value="0.75">HORTUM (BAHÇE HORTUMU)</option>
+                                <option value="0.065">PLASTİK BORU</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="form-section">
+                <h2>Emme Hattı</h2>
+                <div class="input-wrapper">
+                    <div class="fitting-input-group">
+                        <label>Boru Bilgileri</label>
+                        <div class="input-row">
+                            <div class="input-with-unit"><input type="number" id="s_pipeDiameter" placeholder="Boru Çapı*" min="0"><span class="unit">mm</span></div>
+                            <div class="input-with-unit"><input type="number" id="s_pipeLength" placeholder="Boru Boyu*" min="0"><span class="unit">m</span></div>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Süzgeçli Dip Klapesi</label>
+                        <div class="input-row">
+                            <input type="number" class="adet-input" id="s_footValve_n" placeholder="Adet" min="0">
+                            <select id="s_footValve_k"><option value="" disabled selected>Tip Seçiniz*</option><option value="2">Klapeli valf, filtreli (mafsallı)</option><option value="10">Klapeli valf, filtreli (kaldırmalı)</option></select>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Vana</label>
+                        <div class="input-row">
+                            <input type="number" class="adet-input" id="s_gateValve_n" placeholder="Adet" min="0">
+                            <select id="s_gateValve_k"><option value="" disabled selected>Tip Seçiniz*</option><option value="0.2">Sürgülü (şiber) vana, tam açık</option><option value="10">Stop (diskli) vana, tam açık</option></select>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Dirsek</label>
+                        <div class="input-row">
+                            <input type="number" class="adet-input" id="s_elbow90_n" placeholder="Adet" min="0">
+                            <select id="s_elbow90_k"><option value="" disabled selected>Tip Seçiniz*</option><option value="2.2">U dönüşü (kapalı)</option><option value="0.4">Standart 45 dirsek</option><option value="0.9">Standart 90 dirsek</option><option value="0.6">Uzun radyuslü (geniş) 90 dirsek</option></select>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Redüksiyon</label>
+                         <div class="input-row">
+                            <input type="number" class="adet-input" id="s_reducer_n" placeholder="Adet" min="0">
+                            <select id="s_reducer_type"><option value="" disabled selected>Tip Seçiniz*</option><option value="sudden">Ani (Keskin Köşeli)</option><option value="gradual">Kademeli (Konik)</option></select>
+                            <div class="input-with-unit"><input type="number" id="s_reducer_d1" placeholder="Giriş Çapı" min="0"><span class="unit">mm</span></div>
+                            <div class="input-with-unit"><input type="number" id="s_reducer_d2" placeholder="Çıkış Çapı" min="0"><span class="unit">mm</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-section">
+                <h2>Basma Hattı</h2>
+                 <div class="input-wrapper">
+                    <div class="fitting-input-group">
+                        <label>Boru Bilgileri</label>
+                        <div class="input-row">
+                            <div class="input-with-unit"><input type="number" id="d_pipeDiameter" placeholder="Boru Çapı*" min="0"><span class="unit">mm</span></div>
+                            <div class="input-with-unit"><input type="number" id="d_pipeLength" placeholder="Boru Boyu*" min="0"><span class="unit">m</span></div>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Vana</label>
+                        <div class="input-row">
+                            <input type="number" class="adet-input" id="d_gateValve_n" placeholder="Adet" min="0">
+                            <select id="d_gateValve_k"><option value="" disabled selected>Tip Seçiniz*</option><option value="0.2">Sürgülü (şiber) vana, tam açık</option><option value="10">Stop (diskli) vana, tam açık</option></select>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Çekvalf</label>
+                        <div class="input-row">
+                            <input type="number" class="adet-input" id="d_checkValve_n" placeholder="Adet" min="0">
+                            <select id="d_checkValve_k"><option value="" disabled selected>Tip Seçiniz*</option><option value="2.5">Çek valf (klape)(mafsallı)</option><option value="4">Çek valf (klape)(bilyalı)</option><option value="10">Çek valf (klape)(kaldırmalı)</option></select>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Dirsek</label>
+                        <div class="input-row">
+                            <input type="number" class="adet-input" id="d_elbow90_n" placeholder="Adet" min="0">
+                            <select id="d_elbow90_k"><option value="" disabled selected>Tip Seçiniz*</option><option value="2.2">U dönüşü (kapalı)</option><option value="0.4">Standart 45 dirsek</option><option value="0.9">Standart 90 dirsek</option><option value="0.6">Uzun radyuslü (geniş) 90 dirsek</option></select>
+                        </div>
+                    </div>
+                    <div class="fitting-input-group">
+                        <label>Redüksiyon</label>
+                        <div class="input-row">
+                            <input type="number" class="adet-input" id="d_reducer_n" placeholder="Adet" min="0">
+                             <select id="d_reducer_type"><option value="" disabled selected>Tip Seçiniz*</option><option value="sudden">Ani (Keskin Köşeli)</option><option value="gradual">Kademeli (Konik)</option></select>
+                            <div class="input-with-unit"><input type="number" id="d_reducer_d1" placeholder="Giriş Çapı D1" min="0"><span class="unit">mm</span></div>
+                            <div class="input-with-unit"><input type="number" id="d_reducer_d2" placeholder="Çıkış Çapı D2" min="0"><span class="unit">mm</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <button class="calculate-btn" onclick="calculateHm()">Hesapla</button>
+            <section id="results">
+                <h2>Hesaplama Sonuçları</h2>
+                <div class="result-grid">
+                    <div class="result-item"><strong>Emme Sürekli Kayıp (m):</strong> <span id="res_s_friction">0</span></div>
+                    <div class="result-item"><strong>Basma Sürekli Kayıp (m):</strong> <span id="res_d_friction">0</span></div>
+                    <div class="result-item"><strong>Emme Yerel Kayıp (m):</strong> <span id="res_s_local">0</span></div>
+                    <div class="result-item"><strong>Basma Yerel Kayıp (m):</strong> <span id="res_d_local">0</span></div>
+                </div>
+                <div class="final-result">Toplam Manometrik Yükseklik (Hm) = <span id="res_hm">0</span> m</div>
+            </section>
+        </form>
+    </div>
+
+    <script>
+        const g = 9.81;
+        const nu = 1.1416e-6;
+
+        function calculateDarcyFrictionFactor(Re, k_rel) {
+             if (Re < 2300) { return 64 / Re; } const log_term = Math.log10((k_rel / 3.7) + (5.74 / Math.pow(Re, 0.9))); return 0.25 / Math.pow(log_term, 2);
+        }
+
+        function calculateReducerLoss(n, type, d1_mm, d2_mm, flowRate_m3s) {
+            if (n === 0 || !type || d1_mm <= 0 || d2_mm <= 0 || d1_mm === d2_mm) { return 0; }
+            const d1 = d1_mm / 1000.0, d2 = d2_mm / 1000.0;
+            const a1 = Math.PI * Math.pow(d1 / 2, 2), a2 = Math.PI * Math.pow(d2 / 2, 2);
+            const v1 = flowRate_m3s / a1, v2 = flowRate_m3s / a2;
+            let K = 0, loss = 0;
+            if (d2 > d1) { if (type === 'sudden') { loss = Math.pow(v1 - v2, 2) / (2 * g); } else { K = 0.3 * (1 - Math.pow(d1 / d2, 2)); loss = K * Math.pow(v1, 2) / (2 * g); } }
+            else { if (type === 'sudden') { K = 0.42 * (1 - Math.pow(d2 / d1, 2)); } else { K = 0.05; } loss = K * Math.pow(v2, 2) / (2 * g); }
+            return n * loss;
+        }
+        
+        function validateAndGetValues() {
+            const fields = [
+                { id: 'flowRate', name: 'Pompa Debisi' }, { id: 'staticHead', name: 'Statik Yükseklik' }, { id: 'pipeMaterial', name: 'Boru Malzemesi' },
+                { id: 's_pipeDiameter', name: 'Emme Boru Çapı' }, { id: 's_pipeLength', name: 'Emme Boru Boyu' },
+                { id: 'd_pipeDiameter', name: 'Basma Boru Çapı' }, { id: 'd_pipeLength', name: 'Basma Boru Boyu' }
+            ];
+            const errorMessages = new Set();
+            document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+
+            fields.forEach(field => {
+                const element = document.getElementById(field.id);
+                // Statik yükseklik 0 veya negatif olabilir, diğerleri pozitif olmalı
+                const isInvalidNumber = element.tagName === 'INPUT' && parseFloat(element.value) <= 0 && element.id !== 'staticHead';
+                if (!element.value || isInvalidNumber) {
+                    errorMessages.add(field.name); element.classList.add('invalid');
+                }
+            });
+
+            // Genel negatif sayı kontrolü
+            document.querySelectorAll('input[type="number"]').forEach(el => {
+                if (el.value && parseFloat(el.value) < 0) {
+                    const label = el.placeholder || el.closest('.fitting-input-group')?.querySelector('label')?.textContent;
+                    errorMessages.add(`'${label}' negatif olamaz`);
+                    el.classList.add('invalid');
+                }
+            });
+
+            const optionalGroups = [
+                { n_id: 's_footValve_n', sel_id: 's_footValve_k', name: 'Emme Dip Klapesi Tipi' }, { n_id: 's_gateValve_n', sel_id: 's_gateValve_k', name: 'Emme Vana Tipi' },
+                { n_id: 's_elbow90_n', sel_id: 's_elbow90_k', name: 'Emme Dirsek Tipi' }, { n_id: 'd_gateValve_n', sel_id: 'd_gateValve_k', name: 'Basma Vana Tipi' },
+                { n_id: 'd_checkValve_n', sel_id: 'd_checkValve_k', name: 'Basma Çekvalf Tipi' }, { n_id: 'd_elbow90_n', sel_id: 'd_elbow90_k', name: 'Basma Dirsek Tipi' }
+            ];
+
+            optionalGroups.forEach(group => {
+                const n_el = document.getElementById(group.n_id); const sel_el = document.getElementById(group.sel_id);
+                if (n_el.value && parseInt(n_el.value) > 0 && !sel_el.value) { errorMessages.add(group.name); sel_el.classList.add('invalid'); }
+            });
+            
+            ['s', 'd'].forEach(prefix => {
+                const n_el = document.getElementById(`${prefix}_reducer_n`);
+                if(n_el.value && parseInt(n_el.value) > 0) {
+                    ['type', 'd1', 'd2'].forEach(suffix => {
+                        const el = document.getElementById(`${prefix}_reducer_${suffix}`);
+                        if(!el.value || (el.tagName === 'INPUT' && parseFloat(el.value) <= 0)) {
+                            errorMessages.add(`${prefix === 's' ? 'Emme' : 'Basma'} Redüksiyon ${suffix} değeri`); el.classList.add('invalid');
+                        }
+                    });
+                }
+            });
+
+            const errorMessageDiv = document.getElementById('error-message');
+            if (errorMessages.size > 0) {
+                errorMessageDiv.textContent = `Lütfen hatalı veya eksik alanları düzeltin: ${Array.from(errorMessages).join(', ')}`;
+                errorMessageDiv.style.display = 'block'; document.getElementById('results').style.display = 'none'; return null;
+            }
+            errorMessageDiv.style.display = 'none';
+            
+            const values = {};
+            document.querySelectorAll('input, select').forEach(el => {
+                if (el.tagName === 'INPUT') { values[el.id] = parseFloat(el.value) || 0; } else { values[el.id] = el.value; }
+            });
+            return values;
+        }
+
+        function calculateHm() {
+            const v = validateAndGetValues(); if (!v) return;
+            const flowRate_m3s = v.flowRate / 3600.0, k_abs = v.pipeMaterial / 1000.0;
+            const s_D = v.s_pipeDiameter / 1000.0, s_A = Math.PI*Math.pow(s_D/2,2), s_V = flowRate_m3s/s_A;
+            const s_Re = (s_V * s_D) / nu, s_k_rel = k_abs / s_D;
+            const s_f = calculateDarcyFrictionFactor(s_Re, s_k_rel);
+            const s_friction_loss = s_f * (v.s_pipeLength / s_D) * (Math.pow(s_V, 2) / (2 * g));
+            const s_k_total = (v.s_footValve_n * v.s_footValve_k) + (v.s_gateValve_n * v.s_gateValve_k) + (v.s_elbow90_n * v.s_elbow90_k);
+            const s_local_loss_fixed = s_k_total * (Math.pow(s_V, 2) / (2 * g));
+            const s_reducer_loss = calculateReducerLoss(v.s_reducer_n, v.s_reducer_type, v.s_reducer_d1, v.s_reducer_d2, flowRate_m3s);
+            const s_local_loss = s_local_loss_fixed + s_reducer_loss;
+            const d_D = v.d_pipeDiameter / 1000.0, d_A = Math.PI*Math.pow(d_D/2,2), d_V = flowRate_m3s/d_A;
+            const d_Re = (d_V * d_D) / nu, d_k_rel = k_abs / d_D;
+            const d_f = calculateDarcyFrictionFactor(d_Re, d_k_rel);
+            const d_friction_loss = d_f * (v.d_pipeLength / d_D) * (Math.pow(d_V, 2) / (2 * g));
+            const d_k_total = (v.d_gateValve_n * v.d_gateValve_k) + (v.d_checkValve_n * v.d_checkValve_k) + (v.d_elbow90_n * v.d_elbow90_k);
+            const d_local_loss_fixed = d_k_total * (Math.pow(d_V, 2) / (2 * g));
+            const d_reducer_loss = calculateReducerLoss(v.d_reducer_n, v.d_reducer_type, v.d_reducer_d1, v.d_reducer_d2, flowRate_m3s);
+            const d_local_loss = d_local_loss_fixed + d_reducer_loss;
+            const totalHm = v.staticHead + s_friction_loss + s_local_loss + d_friction_loss + d_local_loss;
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('res_s_friction').textContent = s_friction_loss.toFixed(3);
+            document.getElementById('res_s_local').textContent = s_local_loss.toFixed(3);
+            document.getElementById('res_d_friction').textContent = d_friction_loss.toFixed(3);
+            document.getElementById('res_d_local').textContent = d_local_loss.toFixed(3);
+            document.getElementById('res_hm').textContent = totalHm.toFixed(3);
+        }
+    </script>
+</body>
+</html>
